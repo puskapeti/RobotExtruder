@@ -49,28 +49,35 @@ void loop() {
         case stopping:
             if (prevState == extruding) {
                 motor.stop(); //calculates new target position
-                prevState = stopping;
             }
             motor.run();
             if (motor.distanceToGo() == 0) {
                 motorState = not_running;
             }
+            prevState = stopping;
             break;
 
         case retracting:
-            //TODO implement this
+            if(prevState != retracting) {
+                motor.move(-DEG2STEPS(RETRACT_ANGLE));
+            }
+            motor.run();
+            if (motor.distanceToGo() == 0) {
+                motorState = not_running;
+            }
+            prevState = retracting;
             break;
 
         case not_running:
-            //TODO implement this
+            prevState = not_running;
             break;
     }
 #ifdef DEBUG
     if(prevState != motorState) {
         DPRINT("prev. state: ");
-        DPRINT(prevState);
+        DPRINTLN(prevState);
         DPRINT("curr. state: ");
-        DPRINT(motorState);
+        DPRINTLN(motorState);
     }
 #endif
 }
@@ -171,6 +178,7 @@ void extruderInterruptCallback() {
     else { // falling edge
         motorState = stopping;
     }
+    DPRINT("Motor state: ");
     DPRINTLN(motorState);
 }
 

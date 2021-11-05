@@ -13,6 +13,7 @@
 
 #define MAX_EXTRUDE_SPEED   1000.0
 #define MOTOR_ACCELERATION  1000.0
+#define RETRACT_ANGLE       180    //deg
 
 #define EXTRUDE_PIN         2  //PE4 INT4
 #define RETRACT_PIN         3  //PE3 INT5
