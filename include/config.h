@@ -38,8 +38,10 @@
 
 #ifdef DEBUG
 #define DPRINT(msg) Serial.print(msg)
+#define DPRINTLN(msg) Serial.println(msg)
 #else
 #define DPRINT(msg)
+#define DPRINTLN(msg)
 #endif
 
 //debouncing

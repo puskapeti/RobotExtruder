@@ -34,8 +34,8 @@ void setup() {
     motor.move(DEG2STEPS(360));
 }
 
+MotorState prevState = MotorState::not_running;
 void loop() {
-// write your code here
     long stepsToStop = (long)((MAX_EXTRUDE_SPEED * MAX_EXTRUDE_SPEED) / (2.0 * MOTOR_ACCELERATION));
     switch (motorState) {
         case extruding:
@@ -43,11 +43,18 @@ void loop() {
             if (motor.distanceToGo() < DEG2STEPS(stepsToStop) * 2) {
                 motor.move(DEG2STEPS(360));
             }
+            prevState = extruding;
             break;
 
         case stopping:
-            motor.stop();
-            motor.runToPosition();
+            if (prevState == extruding) {
+                motor.stop(); //calculates new target position
+                prevState = stopping;
+            }
+            motor.run();
+            if (motor.distanceToGo() == 0) {
+                motorState = not_running;
+            }
             break;
 
         case retracting:
@@ -58,6 +65,14 @@ void loop() {
             //TODO implement this
             break;
     }
+#ifdef DEBUG
+    if(prevState != motorState) {
+        DPRINT("prev. state: ");
+        DPRINT(prevState);
+        DPRINT("curr. state: ");
+        DPRINT(motorState);
+    }
+#endif
 }
 
 void pinSetup() {
@@ -130,7 +145,7 @@ void extruderInterruptCallback() {
         eISRLastCalled = eISRCalled;
     }
 #endif
-    DPRINT("Extruder callback");
+    DPRINTLN("Extruder callback");
     if (digitalRead(EXTRUDE_PIN) == HIGH) { // rising edge
 /*        byte speedScale = 0b00000001;
         if (digitalRead(SPEED_SCALE_PIN_0) == HIGH) {
@@ -151,11 +166,12 @@ void extruderInterruptCallback() {
         DPRINT(speed);
         DPRINT(speedScaleInt);*/
 
-        motorState = MotorState::extruding;
+        motorState = extruding;
     }
     else { // falling edge
-        motorState = MotorState::stopping;
+        motorState = stopping;
     }
+    DPRINTLN(motorState);
 }
 
 unsigned long rISRLastCalled = 0;
@@ -172,6 +188,6 @@ void retractInterruptCallback() {
         rISRLastCalled = rISRCalled;
     }
 #endif
-    DPRINT("Retract callback");
-    motorState = MotorState::retracting;
+    DPRINTLN("Retract callback");
+    motorState = retracting;
 }
