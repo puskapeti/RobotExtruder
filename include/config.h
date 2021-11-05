@@ -8,7 +8,7 @@
 #include <Arduino.h>
 
 #define DEBUG
-#define SERIAL_CONTROL
+//#define SERIAL_CONTROL
 #define IO_DEBOUNCE
 
 #define MAX_EXTRUDE_SPEED   1000.0

@@ -14,9 +14,12 @@ void disableMotor();
 void extruderInterruptCallback();
 void retractInterruptCallback();
 
+enum MotorState {
+    extruding, stopping, retracting, not_running
+};
+
 AccelStepper motor = AccelStepper(stepForward, stepBackward);
-boolean motorIsRunning = false;
-boolean motorIsStopping = false;
+MotorState motorState = not_running;
 
 void setup() {
 #ifdef DEBUG
@@ -34,17 +37,26 @@ void setup() {
 void loop() {
 // write your code here
     long stepsToStop = (long)((MAX_EXTRUDE_SPEED * MAX_EXTRUDE_SPEED) / (2.0 * MOTOR_ACCELERATION));
-    if (motorIsRunning && !motorIsStopping) {
-        motor.run();
-        if (motor.distanceToGo() < DEG2STEPS(stepsToStop) * 2) {
-            motor.move(DEG2STEPS(360));
-        }
-    }
-    if (motorIsStopping) {
-        motorIsRunning = false;
-        motor.stop();
-        motor.runToPosition();
-        motorIsStopping = false;
+    switch (motorState) {
+        case extruding:
+            motor.run();
+            if (motor.distanceToGo() < DEG2STEPS(stepsToStop) * 2) {
+                motor.move(DEG2STEPS(360));
+            }
+            break;
+
+        case stopping:
+            motor.stop();
+            motor.runToPosition();
+            break;
+
+        case retracting:
+            //TODO implement this
+            break;
+
+        case not_running:
+            //TODO implement this
+            break;
     }
 }
 
@@ -118,7 +130,7 @@ void extruderInterruptCallback() {
         eISRLastCalled = eISRCalled;
     }
 #endif
-    Serial.println("extruder interrupt");
+    DPRINT("Extruder callback");
     if (digitalRead(EXTRUDE_PIN) == HIGH) { // rising edge
 /*        byte speedScale = 0b00000001;
         if (digitalRead(SPEED_SCALE_PIN_0) == HIGH) {
@@ -139,24 +151,27 @@ void extruderInterruptCallback() {
         DPRINT(speed);
         DPRINT(speedScaleInt);*/
 
-        motorIsRunning = true;
+        motorState = MotorState::extruding;
     }
     else { // falling edge
-        motorIsStopping = true;
+        motorState = MotorState::stopping;
     }
 }
 
+unsigned long rISRLastCalled = 0;
+
 void retractInterruptCallback() {
 #ifdef IO_DEBOUNCE
-    unsigned long eISRCalled = millis();
-    if (eISRCalled - eISRLastCalled < DEBOUNCE_TIME) {
+    unsigned long rISRCalled = millis();
+    if (rISRCalled - rISRLastCalled < DEBOUNCE_TIME) {
         //bouncing
         return;
     }
     else {
         //stopped bouncing
-        eISRLastCalled = eISRCalled;
+        rISRLastCalled = rISRCalled;
     }
 #endif
-    Serial.println("Retract callback");
+    DPRINT("Retract callback");
+    motorState = MotorState::retracting;
 }
